@@ -59,14 +59,15 @@ function M.enable()
         else
             parent, x, y, radius = nil, a, b, c
         end
-        -- Carrier slightly larger so SDF edge isn't clipped
-        local SDF_R = 0.95
-        local carrier = radius * 2 / SDF_R
-        local obj = display._originalNewRect(x, y, carrier, carrier)
+        -- Exact same size as native circle. SDF radius=1.0 means the AA
+        -- outer edge is clipped at the rect boundary, but on retina screens
+        -- (460+ PPI) losing half a sub-pixel of transition is invisible.
+        local size = radius * 2
+        local obj = display._originalNewRect(x, y, size, size)
         obj:setFillColor(1, 1, 1)
         obj.fill.effect = "filter.custom.sdf_circle"
-        obj.fill.effect.radius = SDF_R
-        obj.fill.effect.smoothness = smoothness(carrier)
+        obj.fill.effect.radius = 1.0
+        obj.fill.effect.smoothness = smoothness(size)
         if parent then parent:insert(obj) end
         return obj
     end
