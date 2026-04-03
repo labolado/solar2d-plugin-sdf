@@ -99,7 +99,7 @@ pages[1] = { title = "Shapes", fn = function(sv)
     for i, r in ipairs(sizes) do
         local c = display.newCircle(col4(i), y + 55, r)
         c:setFillColor(0.3, 0.7, 1)
-        sv:insert(c._group or c)  -- works for both proxy and native
+        if c._group then sv:insert(c._group) else sv:insert(c) end  -- works for both proxy and native
         display.newText(sv, r.."px", col4(i), y + 55 + r + 12, native.systemFont, 11)
             :setFillColor(0.5, 0.5, 0.5)
     end
@@ -169,7 +169,7 @@ pages[1] = { title = "Shapes", fn = function(sv)
     for i, s in ipairs(scales) do
         local c = display.newCircle(col4(i), y + 45, 25)
         c:setFillColor(0.8, 0.3, 1); c.xScale = s; c.yScale = s
-        sv:insert(c._group or c)
+        if c._group then sv:insert(c._group) else sv:insert(c) end
         display.newText(sv, s.."x", col4(i), y + 85, native.systemFont, 11)
             :setFillColor(0.5, 0.5, 0.5)
     end

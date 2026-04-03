@@ -1035,20 +1035,15 @@ local function newRadiusShape(x, y, radius, effectName, shapeType, sdfRadius)
 end
 
 function M.newCircle(x, y, radius)
-    -- Carrier rect is oversized to compensate for SDF radius < 1.0
-    -- so the visible circle matches the requested radius exactly
-    local SDF_RADIUS = 0.95
     local size = radius * 2
-    local carrierSize = size / SDF_RADIUS
-
     local group = display.newGroup()
-    local fill  = createObject(carrierSize, carrierSize)
+    local fill  = createObject(size, size)
     group:insert(fill)
     fill.x, fill.y = 0, 0
 
-    local sm = defaultSmoothness(carrierSize)
+    local sm = defaultSmoothness(size)
     fill.fill.effect = "filter.custom.sdf_circle"
-    fill.fill.effect.radius     = SDF_RADIUS
+    fill.fill.effect.radius     = 0.95
     fill.fill.effect.smoothness = sm
 
     group.x, group.y = x, y
@@ -1057,29 +1052,23 @@ function M.newCircle(x, y, radius)
         width      = size,
         height     = size,
         effectName = "filter.custom.sdf_circle",
-        sdfRadius  = SDF_RADIUS,
+        sdfRadius  = 0.95,
         smoothness = sm,
         shapeType  = "circle",
-        carrierWidth  = carrierSize,
-        carrierHeight = carrierSize,
     }
     return newProxy(group, fill, params, "circle")
 end
 
 function M.newEllipse(x, y, width, height)
-    local SDF_RADIUS = 0.95
-    local cw = width / SDF_RADIUS
-    local ch = height / SDF_RADIUS
-
     local group = display.newGroup()
-    local fill  = createObject(cw, ch)
+    local fill  = createObject(width, height)
     group:insert(fill)
     fill.x, fill.y = 0, 0
 
-    local sm = defaultSmoothness(MIN(cw, ch))
+    local sm = defaultSmoothness(MIN(width, height))
     fill.fill.effect = "filter.custom.sdf_ellipse"
-    fill.fill.effect.aspect     = cw / ch
-    fill.fill.effect.radius     = SDF_RADIUS
+    fill.fill.effect.aspect     = width / height
+    fill.fill.effect.radius     = 0.95
     fill.fill.effect.smoothness = sm
 
     group.x, group.y = x, y
@@ -1088,12 +1077,10 @@ function M.newEllipse(x, y, width, height)
         width      = width,
         height     = height,
         effectName = "filter.custom.sdf_ellipse",
-        sdfRadius  = SDF_RADIUS,
-        aspect     = cw / ch,
+        sdfRadius  = 0.95,
+        aspect     = width / height,
         smoothness = sm,
         shapeType  = "ellipse",
-        carrierWidth  = cw,
-        carrierHeight = ch,
     }
     return newProxy(group, fill, params, "ellipse")
 end
