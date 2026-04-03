@@ -89,14 +89,31 @@ function M.enable()
         return obj
     end
 
-    -- display.newRect is NOT overridden:
-    -- Straight edges don't benefit from SDF, and overriding breaks widgets
+    -- display.newRect → native rect + sdf_rect shader
+    -- Rotated rects benefit from SDF AA on diagonal edges
+    display.newRect = function(a, b, c, d, e)
+        local parent, x, y, w, h
+        if isDisplayObject(a) then
+            parent, x, y, w, h = a, b, c, d, e
+        else
+            parent, x, y, w, h = nil, a, b, c, d
+        end
+        local obj = display._originalNewRect(x, y, w, h)
+        obj:setFillColor(1, 1, 1)
+        obj.fill.effect = "filter.custom.sdf_rect"
+        obj.fill.effect.aspect = w / h
+        obj.fill.effect.smoothness = smoothness(math.min(w, h))
+        if parent then parent:insert(obj) end
+        return obj
+    end
+
     _enabled = true
 end
 
 function M.disable()
     if not _enabled then return end
     display.newCircle      = display._originalNewCircle
+    display.newRect        = display._originalNewRect
     display.newRoundedRect = display._originalNewRoundedRect
     _enabled = false
 end
