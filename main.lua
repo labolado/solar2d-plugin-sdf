@@ -298,7 +298,9 @@ end}
 pages[4] = { title = "Benchmark", fn = function(sv)
     display.setDefault("background", 1, 1, 1)
 
+    -- Use original functions for UI elements to avoid SDF affecting buttons
     local origCircle = display._originalNewCircle or display.newCircle
+    local origRRect = display._originalNewRoundedRect or display.newRoundedRect
 
     local statusText = display.newText(sv, "Tap a count to benchmark", cx, 8, native.systemFont, 15)
     statusText:setFillColor(0.2, 0.2, 0.2)
@@ -326,8 +328,9 @@ pages[4] = { title = "Benchmark", fn = function(sv)
         }
         for _, l in pairs(labels[n]) do l:setFillColor(0.1, 0.1, 0.1) end
 
-        local btn = display.newRoundedRect(sv, c1, ry, 60, 26, 8)
-        btn:setFillColor(0.2, 0.35, 0.5)
+        -- Use original roundedRect for buttons (not SDF)
+        local btn = origRRect(c1, ry, 60, 26, 8)
+        btn:setFillColor(0.2, 0.35, 0.5); sv:insert(btn)
         display.newText(sv, n, c1, ry, native.systemFontBold, 13):setFillColor(1)
         btn:addEventListener("tap", function()
             local L = labels[n]
@@ -340,7 +343,7 @@ pages[4] = { title = "Benchmark", fn = function(sv)
             timer.performWithDelay(50, function()
                 local t0 = system.getTimer()
                 for i = 1, n do
-                    local o = origCircle(math.random(20,W-20), math.random(250,650), math.random(4,14))
+                    local o = origCircle(math.random(20,W-20), math.random(350,750), math.random(4,14))
                     o:setFillColor(math.random()*0.5+0.3, math.random()*0.5+0.3, 1)
                     benchGroup:insert(o)
                 end
@@ -361,7 +364,7 @@ pages[4] = { title = "Benchmark", fn = function(sv)
                         timer.performWithDelay(50, function()
                             local t1 = system.getTimer()
                             for i = 1, n do
-                                local o = sdf.newCircle(math.random(20,W-20), math.random(250,650), math.random(4,14))
+                                local o = sdf.newCircle(math.random(20,W-20), math.random(350,750), math.random(4,14))
                                 o:setFillColor(math.random()*0.5+0.3, math.random()*0.5+0.3, 1)
                                 benchGroup:insert(o._group)
                             end
