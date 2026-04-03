@@ -563,48 +563,25 @@ end
 
 local proxyMT = {}
 
--- Properties forwarded to _group for both read and write
-local GROUP_PROPS = {
-    x=true, y=true, alpha=true, isVisible=true,
-    rotation=true, xScale=true, yScale=true,
-    anchorX=true, anchorY=true,
-    -- content dimensions (read-only from group)
-    contentWidth=true, contentHeight=true,
-    contentBounds=true, localToContent=true, contentToLocal=true,
-    -- parent / numChildren
-    parent=true, numChildren=true,
-}
-
--- Methods forwarded to _group (event system, insert, toFront/toBack)
-local GROUP_METHODS = {
-    addEventListener=true, removeEventListener=true, dispatchEvent=true,
-    toFront=true, toBack=true,
+-- Keys that stay on the proxy table (SDF internal state), never forwarded to group
+local PROXY_PRIVATE = {
+    _group=true, _fill=true, _stroke=true, _shadow=true, _hasShadow=true,
+    _origEffectName=true, _gradientSnap=true, _params=true, _strokeWidth=true,
+    _strokeColor=true, _smoothness=true, _shadowObj=true, _updateStroke=true,
+    _updateShadow=true,
 }
 
 proxyMT.__index = function(t, k)
+    -- Private SDF state
+    if PROXY_PRIVATE[k] then return rawget(t, k) end
+
     local g = rawget(t, "_group")
 
-    -- Group property passthrough
-    if GROUP_PROPS[k] and g then
-        return g[k]
-    end
+    -- Size from params (not on group)
+    if k == "width"  then local p = rawget(t, "_params"); return p and p.width  end
+    if k == "height" then local p = rawget(t, "_params"); return p and p.height end
 
-    -- Group method passthrough (addEventListener, toFront, etc.)
-    if GROUP_METHODS[k] and g then
-        return function(self, ...)
-            return g[k](g, ...)
-        end
-    end
-
-    -- Size from params
-    local p = rawget(t, "_params")
-    if k == "width"  then return p and p.width  end
-    if k == "height" then return p and p.height end
-
-    -- _group accessor (for transition.to compatibility)
-    if k == "_group" then return g end
-
-    -- removeSelf
+    -- SDF-specific methods
     if k == "removeSelf" then
         return function(self)
             if g then g:removeSelf() end
@@ -619,7 +596,6 @@ proxyMT.__index = function(t, k)
         end
     end
 
-    -- setFillColor
     if k == "setFillColor" then
         return function(self, ...)
             local f = rawget(self, "_fill")
@@ -627,7 +603,6 @@ proxyMT.__index = function(t, k)
         end
     end
 
-    -- setStrokeColor
     if k == "setStrokeColor" then
         return function(self, ...)
             local s = rawget(self, "_stroke")
@@ -636,13 +611,8 @@ proxyMT.__index = function(t, k)
         end
     end
 
-    -- setFillGradient: applies a gradient fill masked by the SDF shape
-    -- Uses a snapshot with gradient background + SDF mask via multiply blend.
-    -- The SDF shader outputs vec4(a,a,a,a) * CoronaColorScale; with white fill
-    -- and multiply blend this becomes: gradient.rgb * alpha, gradient.a * alpha.
     if k == "setFillGradient" then
         return function(self, config)
-            -- Remove existing gradient
             local oldSnap = rawget(self, "_gradientSnap")
             if oldSnap then
                 oldSnap:removeSelf()
@@ -650,7 +620,6 @@ proxyMT.__index = function(t, k)
             end
 
             if config == nil then
-                -- Restore original fill
                 local fill = rawget(self, "_fill")
                 if fill then fill.isVisible = true end
                 return
@@ -660,11 +629,10 @@ proxyMT.__index = function(t, k)
             local group = rawget(self, "_group")
             local w, h  = p.width, p.height
 
-            -- Create snapshot containing gradient + SDF mask
             local snap = display.newSnapshot(w, h)
 
-            -- Gradient background
-            local gradRect = display.newRect(0, 0, w, h)
+            local fn = display._originalNewRect or display.newRect
+            local gradRect = fn(0, 0, w, h)
             gradRect.fill = {
                 type      = "gradient",
                 color1    = config.color1    or {1, 0, 0},
@@ -673,7 +641,6 @@ proxyMT.__index = function(t, k)
             }
             snap.group:insert(gradRect)
 
-            -- SDF shape as alpha mask (multiply blend against gradient)
             local maskObj = createObject(w, h)
             maskObj.fill.effect = p.effectName
             applyShaderUniforms(maskObj, p)
@@ -683,30 +650,27 @@ proxyMT.__index = function(t, k)
 
             snap:invalidate()
 
-            -- Hide original fill
             local fill = rawget(self, "_fill")
             if fill then fill.isVisible = false end
 
-            -- Insert gradient snap in group (after shadow if present)
-            local insertIdx = 1
-            -- shadow is now part of _fill shader, no separate object
-            group:insert(insertIdx, snap)
+            group:insert(1, snap)
             rawset(self, "_gradientSnap", snap)
         end
     end
 
-    return rawget(t, k)
+    -- Everything else → forward to group (makes proxy fully compatible with native objects)
+    if g then return g[k] end
+    return nil
 end
 
 proxyMT.__newindex = function(t, k, v)
-    -- Group passthrough
-    if GROUP_PROPS[k] then
-        local g = rawget(t, "_group")
-        if g then g[k] = v end
+    -- SDF private state
+    if PROXY_PRIVATE[k] then
+        rawset(t, k, v)
         return
     end
 
-    -- strokeWidth
+    -- strokeWidth (special SDF handler)
     if k == "strokeWidth" then
         rawset(t, "_strokeWidth", v)
         local upd = rawget(t, "_updateStroke")
@@ -714,7 +678,7 @@ proxyMT.__newindex = function(t, k, v)
         return
     end
 
-    -- smoothness: update shader uniform live
+    -- smoothness (update shader uniform live)
     if k == "smoothness" then
         rawset(t, "_smoothness", v)
         local fill = rawget(t, "_fill")
@@ -724,13 +688,17 @@ proxyMT.__newindex = function(t, k, v)
         return
     end
 
-    -- shadow
+    -- shadow (special SDF handler)
     if k == "shadow" then
         rawset(t, "_shadow", v)
         local upd = rawget(t, "_updateShadow")
         if upd then upd(t) end
         return
     end
+
+    -- Everything else → forward to group
+    local g = rawget(t, "_group")
+    if g then g[k] = v; return end
 
     rawset(t, k, v)
 end
