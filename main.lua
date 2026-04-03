@@ -87,91 +87,90 @@ local function col5(i) return W * (i - 0.5) / 5 end  -- 5 columns
 -- PAGE 1: Circles + Rects + RoundedRects (standard API)
 -- ═══════════════════════════════════════════════
 pages[1] = { title = "Shapes", fn = function(sv)
-    display.setDefault("background", 0.1, 0.1, 0.12)
+    display.setDefault("background", 1, 1, 1)
     local y = 10
 
     -- Row: Circles
     display.newText(sv, "display.newCircle", W * 0.05, y, native.systemFontBold, 14)
-        :setFillColor(0.7, 0.7, 0.7)
+        :setFillColor(0.2, 0.2, 0.2)
     y = y + 20
 
-    local sizes = {8, 16, 30, 50}
+    local sizes = {12, 24, 45, 75}
     for i, r in ipairs(sizes) do
-        local c = display.newCircle(col4(i), y + 55, r)
+        local c = display.newCircle(col4(i), y + 80, r)
         c:setFillColor(0.3, 0.7, 1)
-        if c._group then sv:insert(c._group) else sv:insert(c) end  -- works for both proxy and native
-        display.newText(sv, r.."px", col4(i), y + 55 + r + 12, native.systemFont, 11)
-            :setFillColor(0.5, 0.5, 0.5)
+        if c._group then sv:insert(c._group) else sv:insert(c) end
+        display.newText(sv, r.."px", col4(i), y + 80 + r + 14, native.systemFont, 13)
+            :setFillColor(0.4, 0.4, 0.4)
     end
 
     -- Row: Rects
-    y = y + 140
+    y = y + 200
     display.newText(sv, "display.newRect", W * 0.05, y, native.systemFontBold, 14)
-        :setFillColor(0.7, 0.7, 0.7)
+        :setFillColor(0.2, 0.2, 0.2)
     y = y + 20
 
-    local rectSizes = {{60,40},{80,50},{100,60},{120,70}}
+    local rectSizes = {{90,60},{120,75},{150,90}}
     for i, s in ipairs(rectSizes) do
-        local r = display.newRect(col4(i), y + 45, s[1], s[2])
+        local r = display.newRect(col3(i), y + 55, s[1], s[2])
         r:setFillColor(0.3, 1, 0.5)
         sv:insert(r._group or r)
     end
 
     -- Row: Rects rotated
-    y = y + 110
+    y = y + 140
     display.newText(sv, "display.newRect (rotated)", W * 0.05, y, native.systemFontBold, 14)
-        :setFillColor(0.7, 0.7, 0.7)
+        :setFillColor(0.2, 0.2, 0.2)
     y = y + 20
 
     local angles = {15, 30, 45, 60}
     for i, a in ipairs(angles) do
-        local r = display.newRect(col4(i), y + 50, 60, 60)
+        local r = display.newRect(col4(i), y + 65, 90, 90)
         r:setFillColor(0.3, 0.7, 1); r.rotation = a
         sv:insert(r._group or r)
-        display.newText(sv, a.."°", col4(i), y + 95, native.systemFont, 11)
-            :setFillColor(0.5, 0.5, 0.5)
+        display.newText(sv, a.."°", col4(i), y + 125, native.systemFont, 13)
+            :setFillColor(0.4, 0.4, 0.4)
     end
 
     -- Row: Rounded rects
-    y = y + 120
+    y = y + 160
     display.newText(sv, "display.newRoundedRect", W * 0.05, y, native.systemFontBold, 14)
-        :setFillColor(0.7, 0.7, 0.7)
+        :setFillColor(0.2, 0.2, 0.2)
     y = y + 20
 
-    local crs = {4, 10, 20, 40}
+    local crs = {6, 15, 30, 50}
     for i, cr in ipairs(crs) do
-        local rr = display.newRoundedRect(col4(i), y + 45, 100, 65, cr)
+        local rr = display.newRoundedRect(col4(i), y + 55, 150, 100, cr)
         rr:setFillColor(1, 0.5, 0.2)
         sv:insert(rr._group or rr)
-        display.newText(sv, "r="..cr, col4(i), y + 88, native.systemFont, 11)
-            :setFillColor(0.5, 0.5, 0.5)
+        display.newText(sv, "r="..cr, col4(i), y + 115, native.systemFont, 13)
+            :setFillColor(0.4, 0.4, 0.4)
     end
 
     -- Row: Mixed colors + alpha
-    y = y + 120
+    y = y + 150
     display.newText(sv, "Colors + Alpha", W * 0.05, y, native.systemFontBold, 14)
-        :setFillColor(0.7, 0.7, 0.7)
+        :setFillColor(0.2, 0.2, 0.2)
     y = y + 20
 
-    local c1 = display.newCircle(col5(1), y+40, 35); c1:setFillColor(1,0,0); sv:insert(c1._group or c1)
-    local c2 = display.newCircle(col5(2), y+40, 35); c2:setFillColor(0,1,0); sv:insert(c2._group or c2)
-    local c3 = display.newCircle(col5(3), y+40, 35); c3:setFillColor(0,0,1); sv:insert(c3._group or c3)
-    local c4 = display.newCircle(col5(4), y+40, 35); c4:setFillColor(1,1,0,0.5); sv:insert(c4._group or c4)
-    local c5 = display.newCircle(col5(5), y+40, 35); c5:setFillColor(1,0,1,0.3); sv:insert(c5._group or c5)
+    local c1 = display.newCircle(col4(1), y+55, 50); c1:setFillColor(1,0,0); sv:insert(c1._group or c1)
+    local c2 = display.newCircle(col4(2), y+55, 50); c2:setFillColor(0,1,0); sv:insert(c2._group or c2)
+    local c3 = display.newCircle(col4(3), y+55, 50); c3:setFillColor(0,0,1); sv:insert(c3._group or c3)
+    local c4 = display.newCircle(col4(4), y+55, 50); c4:setFillColor(1,1,0,0.5); sv:insert(c4._group or c4)
 
     -- Row: Scaled
-    y = y + 100
+    y = y + 140
     display.newText(sv, "Scaled", W * 0.05, y, native.systemFontBold, 14)
-        :setFillColor(0.7, 0.7, 0.7)
+        :setFillColor(0.2, 0.2, 0.2)
     y = y + 20
 
     local scales = {0.5, 1, 1.5, 2}
     for i, s in ipairs(scales) do
-        local c = display.newCircle(col4(i), y + 45, 25)
+        local c = display.newCircle(col4(i), y + 55, 38)
         c:setFillColor(0.8, 0.3, 1); c.xScale = s; c.yScale = s
         if c._group then sv:insert(c._group) else sv:insert(c) end
-        display.newText(sv, s.."x", col4(i), y + 85, native.systemFont, 11)
-            :setFillColor(0.5, 0.5, 0.5)
+        display.newText(sv, s.."x", col4(i), y + 105, native.systemFont, 13)
+            :setFillColor(0.4, 0.4, 0.4)
     end
 end}
 
@@ -179,7 +178,7 @@ end}
 -- PAGE 2: Extended SDF Shapes (always SDF, not in standard API)
 -- ═══════════════════════════════════════════════
 pages[2] = { title = "Extended", fn = function(sv)
-    display.setDefault("background", 0.1, 0.1, 0.12)
+    display.setDefault("background", 1, 1, 1)
 
     local R = 44
     local cellH = R * 2 + 30
@@ -209,7 +208,7 @@ pages[2] = { title = "Extended", fn = function(sv)
         obj:setFillColor(0.3, 0.7, 1)
         sv:insert(obj._group)
         display.newText(sv, s[1], xx, yy + R + 8, native.systemFont, 12)
-            :setFillColor(0.5, 0.5, 0.5)
+            :setFillColor(0.4, 0.4, 0.4)
     end
 
     -- Stroke + Shadow section
@@ -240,7 +239,7 @@ end}
 -- PAGE 3: Side-by-side AA comparison (Native left, SDF right)
 -- ═══════════════════════════════════════════════
 pages[3] = { title = "AA Compare", fn = function(sv)
-    display.setDefault("background", 0.15, 0.15, 0.15)
+    display.setDefault("background", 1, 1, 1)
 
     local leftX = W * 0.25
     local rightX = W * 0.75
@@ -262,33 +261,33 @@ pages[3] = { title = "AA Compare", fn = function(sv)
         y = y + r + 6
         local nc = origCircle(leftX, y, r); nc:setFillColor(0.3, 0.7, 1); sv:insert(nc)
         local sc = sdf.newCircle(rightX, y, r); sc:setFillColor(0.3, 0.7, 1); sv:insert(sc._group)
-        display.newText(sv, r.."px", cx, y, native.systemFont, 10):setFillColor(0.3, 0.3, 0.3)
+        display.newText(sv, r.."px", cx, y, native.systemFont, 10):setFillColor(0.2, 0.2, 0.2)
         y = y + r + 4
     end
 
     -- Rounded rects
     y = y + 15
-    display.newText(sv, "RoundedRect", cx, y, native.systemFont, 12):setFillColor(0.5, 0.5, 0.5)
+    display.newText(sv, "RoundedRect", cx, y, native.systemFont, 12):setFillColor(0.4, 0.4, 0.4)
     y = y + 15
     local crs = {4, 12, 28}
     for _, cr in ipairs(crs) do
         y = y + 40
         local nr = origRRect(leftX, y, W*0.35, 55, cr); nr:setFillColor(1, 0.5, 0.2); sv:insert(nr)
         local sr = sdf.newRoundedRect(rightX, y, W*0.35, 55, cr); sr:setFillColor(1, 0.5, 0.2); sv:insert(sr._group)
-        display.newText(sv, "r="..cr, cx, y, native.systemFont, 10):setFillColor(0.3, 0.3, 0.3)
+        display.newText(sv, "r="..cr, cx, y, native.systemFont, 10):setFillColor(0.2, 0.2, 0.2)
         y = y + 40
     end
 
     -- Rotated rects
     y = y + 15
-    display.newText(sv, "Rotated", cx, y, native.systemFont, 12):setFillColor(0.5, 0.5, 0.5)
+    display.newText(sv, "Rotated", cx, y, native.systemFont, 12):setFillColor(0.4, 0.4, 0.4)
     y = y + 15
     local angles = {15, 30, 45}
     for _, a in ipairs(angles) do
         y = y + 45
         local nr = origRect(leftX, y, 60, 60); nr:setFillColor(0.3, 0.7, 1); nr.rotation = a; sv:insert(nr)
         local sr = sdf.newRect(rightX, y, 60, 60); sr:setFillColor(0.3, 0.7, 1); sr.rotation = a; sv:insert(sr._group)
-        display.newText(sv, a.."°", cx, y, native.systemFont, 10):setFillColor(0.3, 0.3, 0.3)
+        display.newText(sv, a.."°", cx, y, native.systemFont, 10):setFillColor(0.2, 0.2, 0.2)
         y = y + 45
     end
 end}
@@ -297,21 +296,21 @@ end}
 -- PAGE 4: Benchmark
 -- ═══════════════════════════════════════════════
 pages[4] = { title = "Benchmark", fn = function(sv)
-    display.setDefault("background", 0.1, 0.1, 0.12)
+    display.setDefault("background", 1, 1, 1)
 
     local origCircle = display._originalNewCircle or display.newCircle
 
     local statusText = display.newText(sv, "Tap a count to benchmark", cx, 8, native.systemFont, 15)
-    statusText:setFillColor(0.7, 0.7, 0.7)
+    statusText:setFillColor(0.2, 0.2, 0.2)
 
     -- Table header
     local hY = 35
     local c1, c2, c3, c4, c5 = W*0.1, W*0.28, W*0.44, W*0.62, W*0.82
-    display.newText(sv, "N", c1, hY, native.systemFontBold, 13):setFillColor(0.6,0.6,0.6)
-    display.newText(sv, "Nat ms", c2, hY, native.systemFontBold, 13):setFillColor(1,0.5,0.5)
-    display.newText(sv, "Nat FPS", c3, hY, native.systemFontBold, 13):setFillColor(1,0.5,0.5)
-    display.newText(sv, "SDF ms", c4, hY, native.systemFontBold, 13):setFillColor(0.5,1,0.5)
-    display.newText(sv, "SDF FPS", c5, hY, native.systemFontBold, 13):setFillColor(0.5,1,0.5)
+    display.newText(sv, "N", c1, hY, native.systemFontBold, 13):setFillColor(0.3,0.3,0.3)
+    display.newText(sv, "Nat ms", c2, hY, native.systemFontBold, 13):setFillColor(0.8,0.2,0.2)
+    display.newText(sv, "Nat FPS", c3, hY, native.systemFontBold, 13):setFillColor(0.8,0.2,0.2)
+    display.newText(sv, "SDF ms", c4, hY, native.systemFontBold, 13):setFillColor(0.2,0.6,0.2)
+    display.newText(sv, "SDF FPS", c5, hY, native.systemFontBold, 13):setFillColor(0.2,0.6,0.2)
 
     local counts = {100, 200, 500, 1000}
     local labels = {}
@@ -325,7 +324,7 @@ pages[4] = { title = "Benchmark", fn = function(sv)
             sm = display.newText(sv, "—", c4, ry, native.systemFont, 13),
             sf = display.newText(sv, "—", c5, ry, native.systemFont, 13),
         }
-        for _, l in pairs(labels[n]) do l:setFillColor(1) end
+        for _, l in pairs(labels[n]) do l:setFillColor(0.1, 0.1, 0.1) end
 
         local btn = display.newRoundedRect(sv, c1, ry, 60, 26, 8)
         btn:setFillColor(0.2, 0.35, 0.5)

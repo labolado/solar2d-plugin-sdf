@@ -84,7 +84,7 @@ function M.enable()
         obj:setFillColor(1, 1, 1)
         obj.fill.effect = "filter.custom.sdf_rounded_rect"
         obj.fill.effect.aspect = w / h
-        obj.fill.effect.cornerRadius = cr / math.min(w, h)
+        obj.fill.effect.cornerRadius = 2 * cr / h
         obj.fill.effect.smoothness = smoothness(math.min(w, h))
         if parent then parent:insert(obj) end
         return obj

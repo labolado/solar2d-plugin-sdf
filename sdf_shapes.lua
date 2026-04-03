@@ -145,7 +145,7 @@ shaders.roundedRect = {
             P_UV float aspect = u_UserData0;
             P_UV float radius = u_UserData1;
             p.x *= aspect;
-            P_UV vec2 b = vec2(aspect, 1.0) - vec2(radius * 2.0);
+            P_UV vec2 b = vec2(aspect, 1.0) - vec2(radius);
             P_UV vec2 q = abs(p) - b;
             P_UV float dist = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
             P_UV float alpha = 1.0 - smoothstep(-u_UserData2, u_UserData2, dist);
@@ -1116,8 +1116,8 @@ function M.newRoundedRect(x, y, width, height, cornerRadius)
     group:insert(fill)
     fill.x, fill.y = 0, 0
 
-    -- Normalize cornerRadius to [0, 0.45] in SDF space
-    local normalizedRadius = MIN(cornerRadius / (MIN(width, height) * 0.5), 0.45)
+    -- Normalize cornerRadius to SDF UV space (y ranges -1 to 1, so /height*2)
+    local normalizedRadius = MIN(2 * cornerRadius / height, 0.9)
     local sm = defaultSmoothness(MIN(width, height))
 
     fill.fill.effect = "filter.custom.sdf_rounded_rect"
