@@ -311,65 +311,143 @@ pages[3] = { title = "AA Compare", fn = function(sv)
 end}
 
 -- ═══════════════════════════════════════════════
--- PAGE 4: Benchmark
+-- PAGE 4: Benchmark — auto runs Native then SDF, shows comparison
 -- ═══════════════════════════════════════════════
 pages[4] = { title = "Benchmark", fn = function(sv)
     display.setDefault("background", 0.1, 0.1, 0.12)
 
     local origCircle = display._originalNewCircle or display.newCircle
 
-    local resultText = display.newText(sv, "Tap a button to start", cx, 8, native.systemFont, 18)
-    resultText:setFillColor(1, 1, 1)
+    local statusText = display.newText(sv, "Tap count to run benchmark", cx, 8, native.systemFont, 16)
+    statusText:setFillColor(0.7, 0.7, 0.7)
+
+    -- Results table
+    local resultLabels = {}
+    local headerY = 40
+    display.newText(sv, "Count", 70, headerY, native.systemFontBold, 14):setFillColor(0.6,0.6,0.6)
+    display.newText(sv, "Native Create", 220, headerY, native.systemFontBold, 14):setFillColor(1,0.5,0.5)
+    display.newText(sv, "Native FPS", 370, headerY, native.systemFontBold, 14):setFillColor(1,0.5,0.5)
+    display.newText(sv, "SDF Create", 520, headerY, native.systemFontBold, 14):setFillColor(0.5,1,0.5)
+    display.newText(sv, "SDF FPS", 660, headerY, native.systemFontBold, 14):setFillColor(0.5,1,0.5)
+
+    local counts = {100, 200, 500, 1000}
+    for i, count in ipairs(counts) do
+        local ry = headerY + i * 36
+        resultLabels[count] = {
+            natCreate = display.newText(sv, "—", 220, ry, native.systemFont, 14),
+            natFPS    = display.newText(sv, "—", 370, ry, native.systemFont, 14),
+            sdfCreate = display.newText(sv, "—", 520, ry, native.systemFont, 14),
+            sdfFPS    = display.newText(sv, "—", 660, ry, native.systemFont, 14),
+        }
+        for _, l in pairs(resultLabels[count]) do l:setFillColor(1, 1, 1) end
+    end
 
     local benchGroup = display.newGroup()
     sv:insert(benchGroup)
 
-    local function runBench(count, useSDF, label)
+    -- Run a single benchmark, return results via callback
+    local function runSingle(count, useSDF, callback)
         while benchGroup.numChildren > 0 do benchGroup[1]:removeSelf() end
         collectgarbage("collect")
-        resultText.text = "Creating " .. count .. " " .. label .. "..."
-        timer.performWithDelay(100, function()
+
+        timer.performWithDelay(50, function()
             local t0 = system.getTimer()
             if useSDF then
                 for i = 1, count do
-                    local obj = sdf.newCircle(math.random(20,W-20), math.random(200,700), math.random(4,16))
+                    local obj = sdf.newCircle(math.random(20,W-20), math.random(250,700), math.random(4,16))
                     obj:setFillColor(math.random()*0.5+0.3, math.random()*0.5+0.3, 1)
                     benchGroup:insert(obj._group)
                 end
             else
                 for i = 1, count do
-                    local obj = origCircle(math.random(20,W-20), math.random(200,700), math.random(4,16))
+                    local obj = origCircle(math.random(20,W-20), math.random(250,700), math.random(4,16))
                     obj:setFillColor(math.random()*0.5+0.3, math.random()*0.5+0.3, 1)
                     benchGroup:insert(obj)
                 end
             end
-            local ms = system.getTimer() - t0
+            local createMs = system.getTimer() - t0
+            -- Measure FPS for 2 seconds
             local frames, t1 = 0, system.getTimer()
             local function onFrame()
                 frames = frames + 1
-                if system.getTimer() - t1 > 3000 then
+                if system.getTimer() - t1 > 2000 then
                     Runtime:removeEventListener("enterFrame", onFrame)
-                    resultText.text = string.format("%s x%d — Create: %.0fms | FPS: %.1f", label, count, ms, frames/3)
+                    callback(createMs, frames / 2.0)
                 end
             end
             Runtime:addEventListener("enterFrame", onFrame)
         end)
     end
 
-    local function btn(x, y, text, color, fn)
-        local bg = display.newRoundedRect(sv, x, y, 220, 44, 10)
-        bg:setFillColor(unpack(color))
-        display.newText(sv, text, x, y, native.systemFontBold, 16):setFillColor(1)
-        bg:addEventListener("tap", function() fn(); return true end)
+    -- Run comparison: Native first, then SDF, update table
+    local function runComparison(count)
+        local labels = resultLabels[count]
+        labels.natCreate.text = "..."
+        labels.natFPS.text = "..."
+        labels.sdfCreate.text = "..."
+        labels.sdfFPS.text = "..."
+        statusText.text = "Running Native x" .. count .. "..."
+
+        runSingle(count, false, function(natMs, natFps)
+            labels.natCreate.text = string.format("%.0fms", natMs)
+            labels.natFPS.text = string.format("%.1f", natFps)
+            statusText.text = "Running SDF x" .. count .. "..."
+
+            runSingle(count, true, function(sdfMs, sdfFps)
+                labels.sdfCreate.text = string.format("%.0fms", sdfMs)
+                labels.sdfFPS.text = string.format("%.1f", sdfFps)
+
+                -- Color code: green = better, red = worse
+                local function colorize(label, val, ref, lowerIsBetter)
+                    if lowerIsBetter then
+                        label:setFillColor(val <= ref and 0.3 or 1, val <= ref and 1 or 0.4, 0.3)
+                    else
+                        label:setFillColor(val >= ref and 0.3 or 1, val >= ref and 1 or 0.4, 0.3)
+                    end
+                end
+                colorize(labels.natCreate, natMs, sdfMs, true)
+                colorize(labels.sdfCreate, sdfMs, natMs, true)
+                colorize(labels.natFPS, natFps, sdfFps, false)
+                colorize(labels.sdfFPS, sdfFps, natFps, false)
+
+                statusText.text = "x" .. count .. " done. Tap another count."
+                -- Clean up
+                while benchGroup.numChildren > 0 do benchGroup[1]:removeSelf() end
+            end)
+        end)
     end
 
-    local bx1, bx2 = cx * 0.55, cx * 1.45
-    btn(bx1, 50,  "Native x200",  {0.5,0.3,0.2}, function() runBench(200,false,"Native") end)
-    btn(bx2, 50,  "SDF x200",     {0.2,0.4,0.6}, function() runBench(200,true,"SDF") end)
-    btn(bx1, 105, "Native x500",  {0.5,0.3,0.2}, function() runBench(500,false,"Native") end)
-    btn(bx2, 105, "SDF x500",     {0.2,0.4,0.6}, function() runBench(500,true,"SDF") end)
-    btn(bx1, 160, "Native x1000", {0.5,0.3,0.2}, function() runBench(1000,false,"Native") end)
-    btn(bx2, 160, "SDF x1000",    {0.2,0.4,0.6}, function() runBench(1000,true,"SDF") end)
+    -- Buttons
+    for i, count in ipairs(counts) do
+        local ry = headerY + i * 36
+        local btn = display.newRoundedRect(sv, 70, ry, 100, 30, 8)
+        btn:setFillColor(0.2, 0.35, 0.5)
+        display.newText(sv, "x"..count, 70, ry, native.systemFontBold, 14):setFillColor(1)
+        btn:addEventListener("tap", function() runComparison(count); return true end)
+    end
+
+    -- "Run All" button
+    local runAllBtn = display.newRoundedRect(sv, cx, headerY + #counts * 36 + 50, 200, 44, 12)
+    runAllBtn:setFillColor(0.3, 0.5, 0.2)
+    display.newText(sv, "Run All", cx, headerY + #counts * 36 + 50, native.systemFontBold, 18):setFillColor(1)
+
+    runAllBtn:addEventListener("tap", function()
+        local idx = 1
+        local function runNext()
+            if idx > #counts then
+                statusText.text = "All benchmarks complete!"
+                return
+            end
+            runComparison(counts[idx])
+            -- Wait for completion (Native 2s + SDF 2s + overhead)
+            timer.performWithDelay(5000, function()
+                idx = idx + 1
+                runNext()
+            end)
+        end
+        runNext()
+        return true
+    end)
 end}
 
 -- ═══════════════════════════════════════════════
