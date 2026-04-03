@@ -101,7 +101,7 @@ pages[1] = { title = "Shapes", fn = function(sv)
     local padX, padY = 16, 10
     local cellW = (W - padX * 2) / COL
     local cellH = R * 2 + 36
-    local startY = 20
+    local startY = 0
 
     local shapes = {
         {"circle",    function(x,y) return sdf.newCircle(x,y,R) end},
@@ -168,13 +168,13 @@ end}
 -- PAGE 2: Shadow & Gradient
 -- ═══════════════════════════════════════════════
 pages[2] = { title = "Shadow & Gradient", fn = function(sv)
-    local y = 10
+    local y = 0
 
     -- Light bg for shadow
     local fn = display._originalNewRect or display.newRect
-    local bg = fn(cx, y + 170, W, 280); bg:setFillColor(0.88, 0.88, 0.88); sv:insert(bg)
+    local bg = fn(cx, y + 160, W, 280); bg:setFillColor(0.88, 0.88, 0.88); sv:insert(bg)
 
-    display.newText(sv, "Drop Shadow", cx, y + 10, native.systemFontBold, 18):setFillColor(0.3, 0.3, 0.3)
+    display.newText(sv, "Drop Shadow", cx, y + 4, native.systemFontBold, 18):setFillColor(0.3, 0.3, 0.3)
 
     local s1 = sdf.newCircle(120, y+90, 48); s1:setFillColor(1,1,1)
     s1.shadow={offsetX=5,offsetY=5,blur=12,color={0,0,0,0.35}}; ins(sv,s1)
@@ -211,13 +211,13 @@ end}
 pages[3] = { title = "AA Compare", fn = function(sv)
     display.setDefault("background", 0.15, 0.15, 0.15)
 
-    local y = 10
-    display.newText(sv, "Toggle SDF switch to compare!", cx, y, native.systemFontBold, 18):setFillColor(1, 0.8, 0.3)
+    local y = 0
+    display.newText(sv, "Toggle SDF switch to compare!", cx, y + 4, native.systemFontBold, 18):setFillColor(1, 0.8, 0.3)
     local mt = sdfMode and "SDF ON (smooth)" or "SDF OFF (native)"
     display.newText(sv, mt, cx, y + 26, native.systemFontBold, 16):setFillColor(sdfMode and 0.3 or 1, sdfMode and 1 or 0.4, 0.4)
 
     -- Circles
-    y = 60
+    y = 50
     display.newText(sv, "display.newCircle", 20, y, native.systemFontBold, 16):setFillColor(0.7, 0.7, 0.7)
     local sizes = {8, 16, 30, 50, 70}
     local xOff = 60
@@ -273,7 +273,7 @@ pages[4] = { title = "Benchmark", fn = function(sv)
 
     local origCircle = display._originalNewCircle or display.newCircle
 
-    local resultText = display.newText(sv, "Tap a button to start", cx, 20, native.systemFont, 18)
+    local resultText = display.newText(sv, "Tap a button to start", cx, 8, native.systemFont, 18)
     resultText:setFillColor(1, 1, 1)
 
     local benchGroup = display.newGroup()
@@ -318,12 +318,12 @@ pages[4] = { title = "Benchmark", fn = function(sv)
     end
 
     local bx1, bx2 = cx * 0.55, cx * 1.45
-    btn(bx1, 70,  "Native x200",  {0.5,0.3,0.2}, function() runBench(200,false,"Native") end)
-    btn(bx2, 70,  "SDF x200",     {0.2,0.4,0.6}, function() runBench(200,true,"SDF") end)
-    btn(bx1, 125, "Native x500",  {0.5,0.3,0.2}, function() runBench(500,false,"Native") end)
-    btn(bx2, 125, "SDF x500",     {0.2,0.4,0.6}, function() runBench(500,true,"SDF") end)
-    btn(bx1, 180, "Native x1000", {0.5,0.3,0.2}, function() runBench(1000,false,"Native") end)
-    btn(bx2, 180, "SDF x1000",    {0.2,0.4,0.6}, function() runBench(1000,true,"SDF") end)
+    btn(bx1, 50,  "Native x200",  {0.5,0.3,0.2}, function() runBench(200,false,"Native") end)
+    btn(bx2, 50,  "SDF x200",     {0.2,0.4,0.6}, function() runBench(200,true,"SDF") end)
+    btn(bx1, 105, "Native x500",  {0.5,0.3,0.2}, function() runBench(500,false,"Native") end)
+    btn(bx2, 105, "SDF x500",     {0.2,0.4,0.6}, function() runBench(500,true,"SDF") end)
+    btn(bx1, 160, "Native x1000", {0.5,0.3,0.2}, function() runBench(1000,false,"Native") end)
+    btn(bx2, 160, "SDF x1000",    {0.2,0.4,0.6}, function() runBench(1000,true,"SDF") end)
 end}
 
 -- ═══════════════════════════════════════════════
