@@ -1,0 +1,23 @@
+settings =
+{
+    orientation =
+    {
+        default = "portrait",
+        supported = { "portrait" },
+    },
+    iphone =
+    {
+        plist =
+        {
+            UIStatusBarHidden = true,
+            UILaunchStoryboardName = "LaunchScreen",
+        },
+    },
+    -- For production builds, add:
+    -- plugins = {
+    --     ["plugin.sdf"] = {
+    --         publisherId = "com.solar2d",
+    --         supportedPlatforms = { ... },
+    --     },
+    -- },
+}
