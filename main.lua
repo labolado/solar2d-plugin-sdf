@@ -1,7 +1,5 @@
 ------------------------------------------------------------------------------
 -- plugin.sdf — Interactive Demo
--- Tap ◀ ▶ to switch pages, tap SDF toggle to compare
--- sdf.enable() patches display.newCircle/newRect/newRoundedRect
 ------------------------------------------------------------------------------
 
 local sdf = require("plugin.sdf")
@@ -13,48 +11,86 @@ local W = display.contentWidth
 local H = display.contentHeight
 local cx = W * 0.5
 
--- ═══════════════════════════════════════════════
--- State
--- ═══════════════════════════════════════════════
 local pages = {}
 local currentPage = 0
 local scrollView
 local sdfMode = true
 
 -- ═══════════════════════════════════════════════
--- Top bar (60px)
+-- Top bar (70px, bigger toggle)
 -- ═══════════════════════════════════════════════
-local BAR = 50
+local BAR = 70
 
 local topBar = display.newRect(cx, BAR * 0.5, W, BAR)
 topBar:setFillColor(0.06, 0.06, 0.08)
 
-local pageTitle = display.newText("", cx, BAR * 0.5, native.systemFontBold, 22)
+local pageTitle = display.newText("", cx, BAR * 0.5, native.systemFontBold, 24)
 pageTitle:setFillColor(1, 1, 0)
 
-local navL = display.newText("◀", 30, BAR * 0.5, native.systemFontBold, 28)
+local navL = display.newText("◀", 35, BAR * 0.5, native.systemFontBold, 32)
 navL:setFillColor(1, 1, 0, 0.8)
-local navR = display.newText("▶", W - 30, BAR * 0.5, native.systemFontBold, 28)
+local navR = display.newText("▶", W - 35, BAR * 0.5, native.systemFontBold, 32)
 navR:setFillColor(1, 1, 0, 0.8)
 
--- Toggle
-local tgBg = display.newRoundedRect(W - 90, BAR * 0.5, 40, 22, 11)
-local tgKnob = display.newCircle(W - 90, BAR * 0.5, 8)
-tgKnob:setFillColor(1)
-local tgLabel = display.newText("SDF", W - 150, BAR * 0.5, native.systemFontBold, 13)
+-- Big toggle button (easy to tap)
+local tgBtn = display.newRoundedRect(W - 100, BAR * 0.5, 140, 44, 22)
+local tgLabel = display.newText("SDF ON", W - 100, BAR * 0.5, native.systemFontBold, 20)
 
 local function updateToggle()
     if sdfMode then
         sdf.enable()
-        tgBg:setFillColor(0.2, 0.7, 0.3)
-        tgKnob.x = tgBg.x + 10
-        tgLabel.text = "SDF ON"; tgLabel:setFillColor(0.3, 1, 0.5)
+        tgBtn:setFillColor(0.15, 0.55, 0.25)
+        tgLabel.text = "SDF ON"
+        tgLabel:setFillColor(1, 1, 1)
     else
         sdf.disable()
-        tgBg:setFillColor(0.5, 0.3, 0.3)
-        tgKnob.x = tgBg.x - 10
-        tgLabel.text = "SDF OFF"; tgLabel:setFillColor(1, 0.4, 0.4)
+        tgBtn:setFillColor(0.55, 0.2, 0.2)
+        tgLabel.text = "SDF OFF"
+        tgLabel:setFillColor(1, 1, 1)
     end
+end
+
+-- Helper: insert SDF proxy or native object into parent
+local function ins(parent, obj)
+    if obj._group then parent:insert(obj._group) else parent:insert(obj) end
+end
+
+-- Helper: create shape (SDF or native based on sdfMode), insert into parent
+-- Always creates without parent arg, then inserts manually → consistent positioning
+local function makeCircle(parent, x, y, r)
+    local obj
+    if sdfMode then
+        obj = sdf.newCircle(x, y, r)
+        parent:insert(obj._group)
+    else
+        obj = display.newCircle(x, y, r)
+        parent:insert(obj)
+    end
+    return obj
+end
+
+local function makeRect(parent, x, y, w, h)
+    local obj
+    if sdfMode then
+        obj = sdf.newRect(x, y, w, h)
+        parent:insert(obj._group)
+    else
+        obj = display.newRect(x, y, w, h)
+        parent:insert(obj)
+    end
+    return obj
+end
+
+local function makeRoundedRect(parent, x, y, w, h, cr)
+    local obj
+    if sdfMode then
+        obj = sdf.newRoundedRect(x, y, w, h, cr)
+        parent:insert(obj._group)
+    else
+        obj = display.newRoundedRect(x, y, w, h, cr)
+        parent:insert(obj)
+    end
+    return obj
 end
 
 local function showPage(idx)
@@ -63,45 +99,39 @@ local function showPage(idx)
     currentPage = idx
     pageTitle.text = idx .. "/" .. #pages .. "  " .. pages[idx].title
 
-    -- Ensure SDF is disabled while building UI (widget safety)
+    -- Disable SDF while creating widget
     local wasEnabled = sdf.isEnabled()
     if wasEnabled then sdf.disable() end
 
     scrollView = widget.newScrollView({
         x = cx, y = BAR + (H - BAR) * 0.5,
         width = W, height = H - BAR,
+        topPadding = 0,
         horizontalScrollDisabled = true,
         hideBackground = true,
     })
 
-    -- Restore SDF state before building page content
     if wasEnabled then sdf.enable() end
-
     pages[idx].fn(scrollView)
 end
 
 navL:addEventListener("tap", function() if currentPage > 1 then showPage(currentPage - 1) end; return true end)
 navR:addEventListener("tap", function() if currentPage < #pages then showPage(currentPage + 1) end; return true end)
-tgBg:addEventListener("tap", function() sdfMode = not sdfMode; updateToggle(); showPage(currentPage); return true end)
+tgBtn:addEventListener("tap", function() sdfMode = not sdfMode; updateToggle(); showPage(currentPage); return true end)
 updateToggle()
 
--- helper: insert SDF proxy or native into scrollview
-local function ins(sv, obj)
-    if obj._group then sv:insert(obj._group) else sv:insert(obj) end
-end
-
 -- ═══════════════════════════════════════════════
--- PAGE 1: All 15 Shapes
+-- PAGE 1: All 15 Shapes (always SDF direct API)
 -- ═══════════════════════════════════════════════
 pages[1] = { title = "Shapes", fn = function(sv)
     display.setDefault("background", 0.1, 0.1, 0.12)
 
     local R = 44
-    local COL, ROW = 5, 3
-    local padX, padY = 16, 10
+    local COL = 5
+    local padX = 16
     local cellW = (W - padX * 2) / COL
     local cellH = R * 2 + 36
-    local startY = 0
+    local startY = R + 4
 
     local shapes = {
         {"circle",    function(x,y) return sdf.newCircle(x,y,R) end},
@@ -125,17 +155,16 @@ pages[1] = { title = "Shapes", fn = function(sv)
         local col = (i - 1) % COL
         local row = math.floor((i - 1) / COL)
         local xx = padX + cellW * (col + 0.5)
-        local yy = startY + cellH * row + R + 4
+        local yy = startY + cellH * row
         local obj = s[2](xx, yy)
         obj:setFillColor(0.3, 0.7, 1)
         ins(sv, obj)
         display.newText(sv, s[1], xx, yy + R + 10, native.systemFont, 11):setFillColor(0.5, 0.5, 0.5)
     end
 
-    -- Stroke + Colors section
-    local secY = startY + cellH * 3 + 20
+    -- Stroke + Colors
+    local secY = startY + cellH * 3 + 10
     display.newText(sv, "Stroke + Colors", cx, secY, native.systemFontBold, 18):setFillColor(0.8, 0.8, 0.8)
-
     local cols = {{1,0.3,0.3},{0.3,1,0.3},{0.3,0.5,1},{1,0.8,0.2},{1,0.3,0.8}}
     local sMakers = {
         function(x,y) return sdf.newCircle(x,y,36) end,
@@ -146,122 +175,134 @@ pages[1] = { title = "Shapes", fn = function(sv)
     }
     for i = 1, 5 do
         local xx = padX + cellW * (i - 0.5)
-        local obj = sMakers[i](xx, secY + 60)
+        local obj = sMakers[i](xx, secY + 55)
         obj:setFillColor(cols[i][1], cols[i][2], cols[i][3])
         obj:setStrokeColor(1, 1, 1); obj.strokeWidth = 3
         ins(sv, obj)
     end
 
-    -- Animation section
-    local animY = secY + 140
+    -- Animation
+    local animY = secY + 130
     display.newText(sv, "Animation", cx, animY, native.systemFontBold, 18):setFillColor(0.8, 0.8, 0.8)
-
-    local a1 = sdf.newStar(cx-180, animY+60, 32, 6, 13); a1:setFillColor(1,0.8,0.2); ins(sv, a1)
+    local a1 = sdf.newStar(cx-180,animY+55,32,6,13); a1:setFillColor(1,0.8,0.2); ins(sv,a1)
     transition.to(a1, {rotation=360, time=3000, iterations=-1})
-    local a2 = sdf.newCircle(cx, animY+60, 28); a2:setFillColor(0.3,0.8,1); ins(sv, a2)
+    local a2 = sdf.newCircle(cx,animY+55,28); a2:setFillColor(0.3,0.8,1); ins(sv,a2)
     transition.to(a2, {xScale=1.6, yScale=1.6, time=1200, iterations=-1, transition=easing.continuousLoop})
-    local a3 = sdf.newHeart(cx+180, animY+60, 30); a3:setFillColor(1,0.3,0.3); ins(sv, a3)
+    local a3 = sdf.newHeart(cx+180,animY+55,30); a3:setFillColor(1,0.3,0.3); ins(sv,a3)
     transition.to(a3, {alpha=0, time=1500, iterations=-1, transition=easing.continuousLoop})
 end}
 
 -- ═══════════════════════════════════════════════
--- PAGE 2: Shadow & Gradient
+-- PAGE 2: Shadow & Gradient (always SDF direct API)
 -- ═══════════════════════════════════════════════
 pages[2] = { title = "Shadow & Gradient", fn = function(sv)
     local y = 0
-
-    -- Light bg for shadow
     local fn = display._originalNewRect or display.newRect
-    local bg = fn(cx, y + 160, W, 280); bg:setFillColor(0.88, 0.88, 0.88); sv:insert(bg)
+    local bg = fn(cx, 155, W, 260); bg:setFillColor(0.88, 0.88, 0.88); sv:insert(bg)
 
     display.newText(sv, "Drop Shadow", cx, y + 4, native.systemFontBold, 18):setFillColor(0.3, 0.3, 0.3)
 
-    local s1 = sdf.newCircle(120, y+90, 48); s1:setFillColor(1,1,1)
+    local s1 = sdf.newCircle(120,y+80,48); s1:setFillColor(1,1,1)
     s1.shadow={offsetX=5,offsetY=5,blur=12,color={0,0,0,0.35}}; ins(sv,s1)
-    local s2 = sdf.newRoundedRect(350, y+90, 110,75,14); s2:setFillColor(1,1,1)
+    local s2 = sdf.newRoundedRect(350,y+80,110,75,14); s2:setFillColor(1,1,1)
     s2.shadow={offsetX=5,offsetY=5,blur=12,color={0,0,0,0.35}}; ins(sv,s2)
-    local s3 = sdf.newStar(570, y+90, 46, 5, 18); s3:setFillColor(1,1,1)
+    local s3 = sdf.newStar(570,y+80,46,5,18); s3:setFillColor(1,1,1)
     s3.shadow={offsetX=5,offsetY=5,blur=12,color={0,0,0,0.35}}; ins(sv,s3)
 
-    -- Shadow + Stroke
-    display.newText(sv, "Shadow + Stroke", cx, y+195, native.systemFontBold, 18):setFillColor(0.3, 0.3, 0.3)
-
-    local ss1 = sdf.newCircle(180, y+280, 52); ss1:setFillColor(1,1,1)
+    display.newText(sv, "Shadow + Stroke", cx, y+180, native.systemFontBold, 18):setFillColor(0.3, 0.3, 0.3)
+    local ss1 = sdf.newCircle(180,y+260,52); ss1:setFillColor(1,1,1)
     ss1:setStrokeColor(0.2,0.5,0.9); ss1.strokeWidth=5
     ss1.shadow={offsetX=4,offsetY=4,blur=10,color={0,0,0,0.3}}; ins(sv,ss1)
-
-    local ss2 = sdf.newRoundedRect(500, y+280, 130,85,18); ss2:setFillColor(1,1,1)
+    local ss2 = sdf.newRoundedRect(500,y+260,130,85,18); ss2:setFillColor(1,1,1)
     ss2:setStrokeColor(0.8,0.2,0.4); ss2.strokeWidth=4
     ss2.shadow={offsetX=4,offsetY=4,blur=10,color={0,0,0,0.3}}; ins(sv,ss2)
 
-    -- Gradient
-    y = y + 370
+    y = 350
     display.newText(sv, "Gradient Fill", cx, y, native.systemFontBold, 18):setFillColor(0.8, 0.8, 0.8)
-
-    local g1 = sdf.newCircle(100,y+75,48); g1:setFillGradient({type="gradient",color1={1,0,0},color2={0,0,1},direction="down"}); ins(sv,g1)
-    local g2 = sdf.newRoundedRect(290,y+75,100,70,12); g2:setFillGradient({type="gradient",color1={0,1,0},color2={1,1,0},direction="right"}); ins(sv,g2)
-    local g3 = sdf.newHexagon(460,y+75,44); g3:setFillGradient({type="gradient",color1={1,0,1},color2={0,1,1},direction="down"})
+    local g1 = sdf.newCircle(100,y+70,48); g1:setFillGradient({type="gradient",color1={1,0,0},color2={0,0,1},direction="down"}); ins(sv,g1)
+    local g2 = sdf.newRoundedRect(290,y+70,100,70,12); g2:setFillGradient({type="gradient",color1={0,1,0},color2={1,1,0},direction="right"}); ins(sv,g2)
+    local g3 = sdf.newHexagon(460,y+70,44); g3:setFillGradient({type="gradient",color1={1,0,1},color2={0,1,1},direction="down"})
     g3:setStrokeColor(1,1,1); g3.strokeWidth=2; ins(sv,g3)
-    local g4 = sdf.newHeart(620,y+75,44); g4:setFillGradient({type="gradient",color1={1,0.2,0.2},color2={1,0.8,0.2},direction="down"}); ins(sv,g4)
+    local g4 = sdf.newHeart(620,y+70,44); g4:setFillGradient({type="gradient",color1={1,0.2,0.2},color2={1,0.8,0.2},direction="down"}); ins(sv,g4)
 end}
 
 -- ═══════════════════════════════════════════════
--- PAGE 3: AA Comparison — toggle to see difference
+-- PAGE 3: AA Comparison — toggle SDF ON/OFF
+-- Uses makeCircle/makeRect/makeRoundedRect which create without
+-- parent arg then manually insert → consistent positioning
 -- ═══════════════════════════════════════════════
 pages[3] = { title = "AA Compare", fn = function(sv)
     display.setDefault("background", 0.15, 0.15, 0.15)
 
-    local y = 0
-    display.newText(sv, "Toggle SDF switch to compare!", cx, y + 4, native.systemFontBold, 18):setFillColor(1, 0.8, 0.3)
-    local mt = sdfMode and "SDF ON (smooth)" or "SDF OFF (native)"
-    display.newText(sv, mt, cx, y + 26, native.systemFontBold, 16):setFillColor(sdfMode and 0.3 or 1, sdfMode and 1 or 0.4, 0.4)
+    local y = 4
+    local mt = sdfMode and "SDF ON — smooth edges" or "SDF OFF — native (aliased)"
+    local col = sdfMode and {0.3, 1, 0.5} or {1, 0.4, 0.4}
+    local modeLabel = display.newText(sv, mt, cx, y, native.systemFontBold, 20)
+    modeLabel:setFillColor(unpack(col))
 
-    -- Circles
-    y = 50
-    display.newText(sv, "display.newCircle", 20, y, native.systemFontBold, 16):setFillColor(0.7, 0.7, 0.7)
-    local sizes = {8, 16, 30, 50, 70}
-    local xOff = 60
+    -- Small circles (aliasing most visible here)
+    y = 40
+    display.newText(sv, "Small Circles (zoom in to see edges)", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
+
+    local sizes = {3, 5, 8, 12, 18, 25, 35, 50}
+    local xOff = 30
     for _, r in ipairs(sizes) do
-        local c = display.newCircle(sv, xOff, y + 65, r)
+        local c = makeCircle(sv, xOff + r, y + 40 + r, r)
         c:setFillColor(0.3, 0.7, 1)
-        display.newText(sv, r.."px", xOff, y + 65 + r + 10, native.systemFont, 11):setFillColor(0.4, 0.4, 0.4)
-        xOff = xOff + r * 2 + 24
+        display.newText(sv, r, xOff + r, y + 42 + r * 2 + 8, native.systemFont, 10):setFillColor(0.4,0.4,0.4)
+        xOff = xOff + r * 2 + 16
+    end
+
+    -- Medium circles row
+    y = 160
+    display.newText(sv, "Medium Circles", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
+    local medSizes = {40, 60, 80}
+    xOff = 80
+    for _, r in ipairs(medSizes) do
+        local c = makeCircle(sv, xOff, y + 30 + r, r)
+        c:setFillColor(0.3, 0.7, 1)
+        display.newText(sv, r.."px", xOff, y + 32 + r*2 + 8, native.systemFont, 11):setFillColor(0.4,0.4,0.4)
+        xOff = xOff + r * 2 + 40
     end
 
     -- Rounded rects
-    y = 230
-    display.newText(sv, "display.newRoundedRect", 20, y, native.systemFontBold, 16):setFillColor(0.7, 0.7, 0.7)
-    local radii = {2, 8, 16, 32}
+    y = 370
+    display.newText(sv, "Rounded Rects", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
+    local crs = {2, 6, 14, 30}
     xOff = 80
-    for _, cr in ipairs(radii) do
-        local rr = display.newRoundedRect(sv, xOff, y + 55, 100, 65, cr)
+    for _, cr in ipairs(crs) do
+        local rr = makeRoundedRect(sv, xOff, y + 55, 100, 65, cr)
         rr:setFillColor(1, 0.5, 0.2)
-        display.newText(sv, "r="..cr, xOff, y + 100, native.systemFont, 11):setFillColor(0.4, 0.4, 0.4)
+        display.newText(sv, "r="..cr, xOff, y + 100, native.systemFont, 11):setFillColor(0.4,0.4,0.4)
         xOff = xOff + 140
     end
 
-    -- Rects rotated
-    y = 380
-    display.newText(sv, "display.newRect rotated", 20, y, native.systemFontBold, 16):setFillColor(0.7, 0.7, 0.7)
+    -- Rotated rects
+    y = 490
+    display.newText(sv, "Rotated Rects (diagonal AA)", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
     local angles = {10, 25, 45, 60}
     xOff = 80
     for _, a in ipairs(angles) do
-        local r = display.newRect(sv, xOff, y + 60, 60, 60)
-        r:setFillColor(0.3, 0.7, 1); r.rotation = a
-        display.newText(sv, a.."°", xOff, y + 110, native.systemFont, 11):setFillColor(0.4, 0.4, 0.4)
-        xOff = xOff + 140
+        local r = makeRect(sv, xOff, y + 55, 60, 60)
+        r:setFillColor(0.3, 0.7, 1)
+        r.rotation = a
+        display.newText(sv, a.."°", xOff, y + 105, native.systemFont, 11):setFillColor(0.4,0.4,0.4)
+        xOff = xOff + 145
     end
 
-    -- Scaled
-    y = 530
-    display.newText(sv, "Scaled circles", 20, y, native.systemFontBold, 16):setFillColor(0.7, 0.7, 0.7)
-    local scales = {0.5, 1, 2, 3}
-    xOff = 80
-    for _, s in ipairs(scales) do
-        local c = display.newCircle(sv, xOff, y + 55, 22)
-        c:setFillColor(0.8, 0.3, 1); c.xScale=s; c.yScale=s
-        display.newText(sv, s.."x", xOff, y + 100, native.systemFont, 11):setFillColor(0.4, 0.4, 0.4)
-        xOff = xOff + 140
+    -- 1px lines comparison (native lines have bad aliasing)
+    y = 620
+    display.newText(sv, "Thin Lines at Angles", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
+    for i = 0, 8 do
+        local angle = math.rad(i * 5 + 2)  -- 2° to 42°
+        local len = 200
+        local x1 = cx - len * math.cos(angle)
+        local y1 = y + 50 + i * 16
+        local x2 = cx + len * math.cos(angle)
+        local y2 = y + 50 + i * 16 + len * math.sin(angle) * 0.3
+        local line = display.newLine(sv, x1, y1, x2, y2)
+        line:setStrokeColor(1, 1, 1)
+        line.strokeWidth = 1
     end
 end}
 
@@ -287,14 +328,15 @@ pages[4] = { title = "Benchmark", fn = function(sv)
             local t0 = system.getTimer()
             if useSDF then
                 for i = 1, count do
-                    local obj = sdf.newCircle(math.random(20,W-20), math.random(220,700), math.random(4,16))
+                    local obj = sdf.newCircle(math.random(20,W-20), math.random(200,700), math.random(4,16))
                     obj:setFillColor(math.random()*0.5+0.3, math.random()*0.5+0.3, 1)
                     benchGroup:insert(obj._group)
                 end
             else
                 for i = 1, count do
-                    local obj = origCircle(benchGroup, math.random(20,W-20), math.random(220,700), math.random(4,16))
+                    local obj = origCircle(math.random(20,W-20), math.random(200,700), math.random(4,16))
                     obj:setFillColor(math.random()*0.5+0.3, math.random()*0.5+0.3, 1)
+                    benchGroup:insert(obj)
                 end
             end
             local ms = system.getTimer() - t0
