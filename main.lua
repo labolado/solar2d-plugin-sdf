@@ -10,6 +10,7 @@ display.setStatusBar(display.HiddenStatusBar)
 local W = display.contentWidth
 local H = display.contentHeight
 local cx = W * 0.5
+local safeY = display.safeScreenOriginY or 0  -- iPhone notch/dynamic island offset
 
 local pages = {}
 local currentPage = 0
@@ -21,20 +22,25 @@ local sdfMode = true
 -- ═══════════════════════════════════════════════
 local BAR = 70
 
-local topBar = display.newRect(cx, BAR * 0.5, W, BAR)
-topBar:setFillColor(0.06, 0.06, 0.08)
+local barTop = safeY
+local barMid = barTop + BAR * 0.5
 
-local pageTitle = display.newText("", cx, BAR * 0.5, native.systemFontBold, 24)
+local topBar = display.newRect(cx, barTop + BAR * 0.5, W, BAR + safeY * 2)
+topBar:setFillColor(0.06, 0.06, 0.08)
+topBar.anchorY = 1
+topBar.y = barTop + BAR
+
+local pageTitle = display.newText("", cx * 0.7, barMid, native.systemFontBold, 22)
 pageTitle:setFillColor(1, 1, 0)
 
-local navL = display.newText("◀", 35, BAR * 0.5, native.systemFontBold, 32)
+local navL = display.newText("◀", 35, barMid, native.systemFontBold, 32)
 navL:setFillColor(1, 1, 0, 0.8)
-local navR = display.newText("▶", W - 35, BAR * 0.5, native.systemFontBold, 32)
+local navR = display.newText("▶", W - 35, barMid, native.systemFontBold, 32)
 navR:setFillColor(1, 1, 0, 0.8)
 
--- Big toggle button (easy to tap)
-local tgBtn = display.newRoundedRect(W - 100, BAR * 0.5, 140, 44, 22)
-local tgLabel = display.newText("SDF ON", W - 100, BAR * 0.5, native.systemFontBold, 20)
+-- Toggle button
+local tgBtn = display.newRoundedRect(W * 0.78, barMid, 110, 36, 18)
+local tgLabel = display.newText("SDF ON", W * 0.78, barMid, native.systemFontBold, 16)
 
 local function updateToggle()
     if sdfMode then
@@ -103,9 +109,11 @@ local function showPage(idx)
     local wasEnabled = sdf.isEnabled()
     if wasEnabled then sdf.disable() end
 
+    local svTop = barTop + BAR
+    local svH = H - svTop
     scrollView = widget.newScrollView({
-        x = cx, y = BAR + (H - BAR) * 0.5,
-        width = W, height = H - BAR,
+        x = cx, y = svTop + svH * 0.5,
+        width = W, height = svH,
         topPadding = 0,
         horizontalScrollDisabled = true,
         hideBackground = true,
@@ -227,82 +235,78 @@ pages[2] = { title = "Shadow & Gradient", fn = function(sv)
 end}
 
 -- ═══════════════════════════════════════════════
--- PAGE 3: AA Comparison — toggle SDF ON/OFF
--- Uses makeCircle/makeRect/makeRoundedRect which create without
--- parent arg then manually insert → consistent positioning
+-- PAGE 3: AA Comparison — Native (left) vs SDF (right) side by side
 -- ═══════════════════════════════════════════════
 pages[3] = { title = "AA Compare", fn = function(sv)
     display.setDefault("background", 0.15, 0.15, 0.15)
 
+    local leftX = W * 0.25   -- native column center
+    local rightX = W * 0.75  -- SDF column center
+
+    -- Column headers
     local y = 4
-    local mt = sdfMode and "SDF ON — smooth edges" or "SDF OFF — native (aliased)"
-    local col = sdfMode and {0.3, 1, 0.5} or {1, 0.4, 0.4}
-    local modeLabel = display.newText(sv, mt, cx, y, native.systemFontBold, 20)
-    modeLabel:setFillColor(unpack(col))
+    display.newText(sv, "Native", leftX, y, native.systemFontBold, 18):setFillColor(1, 0.4, 0.4)
+    display.newText(sv, "SDF", rightX, y, native.systemFontBold, 18):setFillColor(0.4, 1, 0.5)
+    display.newText(sv, "vs", cx, y, native.systemFont, 14):setFillColor(0.4, 0.4, 0.4)
 
-    -- Small circles (aliasing most visible here)
-    y = 40
-    display.newText(sv, "Small Circles (zoom in to see edges)", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
+    -- Divider line
+    local div = display.newLine(sv, cx, 20, cx, 2000)
+    div:setStrokeColor(0.3, 0.3, 0.3); div.strokeWidth = 1
 
-    local sizes = {3, 5, 8, 12, 18, 25, 35, 50}
-    local xOff = 30
+    -- Use original display functions for native column
+    local origCircle = display._originalNewCircle or display.newCircle
+    local origRect = display._originalNewRect or display.newRect
+    local origRRect = display._originalNewRoundedRect or display.newRoundedRect
+
+    -- === Circles ===
+    y = 30
+    display.newText(sv, "Circles", cx, y, native.systemFontBold, 14):setFillColor(0.6, 0.6, 0.6)
+
+    local sizes = {5, 10, 20, 40, 70}
+    local rowY = y + 20
     for _, r in ipairs(sizes) do
-        local c = makeCircle(sv, xOff + r, y + 40 + r, r)
-        c:setFillColor(0.3, 0.7, 1)
-        display.newText(sv, r, xOff + r, y + 42 + r * 2 + 8, native.systemFont, 10):setFillColor(0.4,0.4,0.4)
-        xOff = xOff + r * 2 + 16
+        rowY = rowY + r + 8
+        -- Native (left)
+        local nc = origCircle(leftX, rowY, r)
+        nc:setFillColor(0.3, 0.7, 1); sv:insert(nc)
+        -- SDF (right)
+        local sc = sdf.newCircle(rightX, rowY, r)
+        sc:setFillColor(0.3, 0.7, 1); sv:insert(sc._group)
+        -- Label
+        display.newText(sv, r.."px", cx, rowY, native.systemFont, 10):setFillColor(0.4, 0.4, 0.4)
+        rowY = rowY + r + 4
     end
 
-    -- Medium circles row
-    y = 160
-    display.newText(sv, "Medium Circles", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
-    local medSizes = {40, 60, 80}
-    xOff = 80
-    for _, r in ipairs(medSizes) do
-        local c = makeCircle(sv, xOff, y + 30 + r, r)
-        c:setFillColor(0.3, 0.7, 1)
-        display.newText(sv, r.."px", xOff, y + 32 + r*2 + 8, native.systemFont, 11):setFillColor(0.4,0.4,0.4)
-        xOff = xOff + r * 2 + 40
-    end
+    -- === Rounded Rects ===
+    y = rowY + 20
+    display.newText(sv, "Rounded Rects", cx, y, native.systemFontBold, 14):setFillColor(0.6, 0.6, 0.6)
 
-    -- Rounded rects
-    y = 370
-    display.newText(sv, "Rounded Rects", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
-    local crs = {2, 6, 14, 30}
-    xOff = 80
+    local crs = {4, 10, 20, 40}
+    rowY = y + 20
     for _, cr in ipairs(crs) do
-        local rr = makeRoundedRect(sv, xOff, y + 55, 100, 65, cr)
-        rr:setFillColor(1, 0.5, 0.2)
-        display.newText(sv, "r="..cr, xOff, y + 100, native.systemFont, 11):setFillColor(0.4,0.4,0.4)
-        xOff = xOff + 140
+        rowY = rowY + 45
+        local nrr = origRRect(leftX, rowY, 120, 70, cr)
+        nrr:setFillColor(1, 0.5, 0.2); sv:insert(nrr)
+        local srr = sdf.newRoundedRect(rightX, rowY, 120, 70, cr)
+        srr:setFillColor(1, 0.5, 0.2); sv:insert(srr._group)
+        display.newText(sv, "r="..cr, cx, rowY, native.systemFont, 10):setFillColor(0.4, 0.4, 0.4)
+        rowY = rowY + 45
     end
 
-    -- Rotated rects
-    y = 490
-    display.newText(sv, "Rotated Rects (diagonal AA)", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
-    local angles = {10, 25, 45, 60}
-    xOff = 80
+    -- === Rotated Rects ===
+    y = rowY + 20
+    display.newText(sv, "Rotated Rects", cx, y, native.systemFontBold, 14):setFillColor(0.6, 0.6, 0.6)
+
+    local angles = {15, 30, 45}
+    rowY = y + 20
     for _, a in ipairs(angles) do
-        local r = makeRect(sv, xOff, y + 55, 60, 60)
-        r:setFillColor(0.3, 0.7, 1)
-        r.rotation = a
-        display.newText(sv, a.."°", xOff, y + 105, native.systemFont, 11):setFillColor(0.4,0.4,0.4)
-        xOff = xOff + 145
-    end
-
-    -- 1px lines comparison (native lines have bad aliasing)
-    y = 620
-    display.newText(sv, "Thin Lines at Angles", 10, y, native.systemFontBold, 14):setFillColor(0.7,0.7,0.7)
-    for i = 0, 8 do
-        local angle = math.rad(i * 5 + 2)  -- 2° to 42°
-        local len = 200
-        local x1 = cx - len * math.cos(angle)
-        local y1 = y + 50 + i * 16
-        local x2 = cx + len * math.cos(angle)
-        local y2 = y + 50 + i * 16 + len * math.sin(angle) * 0.3
-        local line = display.newLine(sv, x1, y1, x2, y2)
-        line:setStrokeColor(1, 1, 1)
-        line.strokeWidth = 1
+        rowY = rowY + 50
+        local nr = origRect(leftX, rowY, 70, 70)
+        nr:setFillColor(0.3, 0.7, 1); nr.rotation = a; sv:insert(nr)
+        local sr = sdf.newRect(rightX, rowY, 70, 70)
+        sr:setFillColor(0.3, 0.7, 1); sr.rotation = a; sv:insert(sr._group)
+        display.newText(sv, a.."°", cx, rowY, native.systemFont, 10):setFillColor(0.4, 0.4, 0.4)
+        rowY = rowY + 50
     end
 end}
 
