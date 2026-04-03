@@ -59,15 +59,17 @@ function M.enable()
         else
             parent, x, y, radius = nil, a, b, c
         end
-        -- Exact same size as native circle. SDF radius=1.0 means the AA
-        -- outer edge is clipped at the rect boundary, but on retina screens
-        -- (460+ PPI) losing half a sub-pixel of transition is invisible.
+        -- Carrier is 5% larger to give SDF room for anti-aliasing edge.
+        -- The visible circle matches the requested radius exactly.
         local size = radius * 2
-        local obj = display._originalNewRect(x, y, size, size)
+        local pad = 1.05
+        local carrier = size * pad
+        local sdfR = 1.0 / pad  -- ~0.952, visible circle = carrier * sdfR / 2 = radius
+        local obj = display._originalNewRect(x, y, carrier, carrier)
         obj:setFillColor(1, 1, 1)
         obj.fill.effect = "filter.custom.sdf_circle"
-        obj.fill.effect.radius = 1.0
-        obj.fill.effect.smoothness = smoothness(size)
+        obj.fill.effect.radius = sdfR
+        obj.fill.effect.smoothness = 1.5 / (carrier * getContentScale())
         if parent then parent:insert(obj) end
         return obj
     end
@@ -85,7 +87,7 @@ function M.enable()
         obj.fill.effect = "filter.custom.sdf_rounded_rect"
         obj.fill.effect.aspect = w / h
         obj.fill.effect.cornerRadius = 2 * cr / h
-        obj.fill.effect.smoothness = smoothness(math.min(w, h))
+        obj.fill.effect.smoothness = 1.5 / (math.min(w, h) * getContentScale())
         if parent then parent:insert(obj) end
         return obj
     end
@@ -103,7 +105,7 @@ function M.enable()
         obj:setFillColor(1, 1, 1)
         obj.fill.effect = "filter.custom.sdf_rect"
         obj.fill.effect.aspect = w / h
-        obj.fill.effect.smoothness = smoothness(math.min(w, h))
+        obj.fill.effect.smoothness = 1.5 / (math.min(w, h) * getContentScale())
         if parent then parent:insert(obj) end
         return obj
     end
